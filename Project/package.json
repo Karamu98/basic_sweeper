@@ -1,0 +1,21 @@
+{
+  "name": "ps5_sweeper",
+  "version": "1.0.0",
+  "description": "Sweep for PS5",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": "main.js",
+  "pkg" : {   
+    "scripts" : [
+        "main.js"     
+     ]
+  },
+  "author": "Karamu98",
+  "license": "ISC",
+  "dependencies": {
+    "open": "^7.3.0",
+    "request": "^2.88.2"
+  }
+}
