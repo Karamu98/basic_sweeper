@@ -2,7 +2,7 @@ const requester = require('request');
 const open = require('open');
 const { argv } = require('process');
 
-var websiteURL = "https://www.currys.co.uk/gbuk/playstation-5-sony-1714-commercial.html";
+var websiteURL = "https://www.youtube.co.uk";//"https://www.currys.co.uk/gbuk/playstation-5-sony-1714-commercial.html";
 var tellSign = "<div class=\"sold-out-banner\">"
 var pingTimeMilliseconds = 10000.0;
 
@@ -38,7 +38,7 @@ function makeRequest()
 
 function processPage(error, responce, body)
 {
-    console.log("Responce received.");
+    console.log("Response received.");
 
     if(error)
     {
@@ -46,16 +46,23 @@ function processPage(error, responce, body)
        return; 
     }
 
-    if(!body.includes(tellSign))
+    if(responce.statusCode != 200)
     {
-        console.log("Availble!");
-        // Open chrome with url
-        open(websiteURL);
-        return;
+        console.log(`Bad response: ${responce.statusCode} - ${responce.statusMessage}`);
     }
     else
     {
-        console.log("Not Available :(");
+        if(!body.includes(tellSign))
+        {
+            console.log("Availble!");
+            // Open chrome with url
+            open(websiteURL);
+            return;
+        }
+        else
+        {
+            console.log("Not Available :(");
+        }
     }
 
     curPingTimer = pingTimeMilliseconds;

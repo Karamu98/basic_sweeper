@@ -1,1 +1,1 @@
-ps5_sweeper-win "https://www.currys.co.uk/gbuk/playstation-5-sony-1714-commercial.html" "<div class=\"sold-out-banner\">" 1000
+ps5_sweeper-win "https://www.currys.co.uk/gbuk/playstation-5-sony-1714-commercial.html" "<div class=\"sold-out-banner\">" 5000
