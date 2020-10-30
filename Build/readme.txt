@@ -5,3 +5,11 @@ for example
 
 	This will ping google every second and will look for <body> in the HTML. Make sure the URL and the element you're looking
 	for is wrapped in "'s though or this wont run.
+
+IMPORTANT: if you use " in your arguments, make sure to use a \ before like this 
+	
+	ps5_sweeper-win "google.co.uk" "<div id=\"test\">" 1000
+
+	NOT like this
+	
+	ps5_sweeper-win "google.co.uk" <div id="test">" 1000
