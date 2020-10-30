@@ -51,6 +51,7 @@ function processPage(error, responce, body)
         console.log("Availble!");
         // Open chrome with url
         open(websiteURL);
+        return;
     }
     else
     {
