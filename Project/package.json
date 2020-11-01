@@ -1,21 +1,29 @@
 {
-  "name": "ps5_sweeper",
+  "name": "scraper",
   "version": "1.0.0",
-  "description": "Sweep for PS5",
+  "description": "Sweep sites",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=release-builds",
+    "package-win": "electron-packager . web-scraper --overwrite --asar=true --platform=win32 --arch=ia32 --icon=assets/icons/win/icon.ico --prune=true --out=release-builds --version-string.CompanyName=Karamu --version-string.FileDescription=CE --version-string.ProductName=\"WebScraper\"",
+    "package-linux": "electron-packager . web-scraper --overwrite --asar=true --platform=linux --arch=x64 --icon=assets/icons/png/icon.png --prune=true --out=release-builds"
   },
   "bin": "main.js",
-  "pkg" : {   
-    "scripts" : [
-        "main.js"     
-     ]
+  "pkg": {
+    "scripts": [
+      "main.js"
+    ]
   },
   "author": "Karamu98",
   "license": "ISC",
   "dependencies": {
+    "@apify/http-request": "^2.1.0",
+    "electron": "^10.1.5",
     "open": "^7.3.0",
     "request": "^2.88.2"
+  },
+  "devDependencies": {
+    "electron-packager": "^15.1.0"
   }
 }
