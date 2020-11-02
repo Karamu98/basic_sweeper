@@ -139,23 +139,18 @@ async function main()
             websiteURL = args[0];
             tellSign = args[1];
             pingTimeMilliseconds = Number(args[2]) * 1000;
-            console.log("Got basicss");
             
             if(args.length >= 3 && args[3] == "-a")
             {
                 usingChromium = true;
-                console.log("Flag chrome");
 
                 if(args.length >= 4 && args[4] == "-h")
                 {
-                    console.log("Flag headless");
                     usingHeadless = true;
                 }
 
                 console.log("Creating browser");
-                console.log(`Chromium path: ${chromium.path}`);
-
-                pupBrowser = await puppeteer.launch({headless: usingHeadless, executablePath: chromium.path});
+                pupBrowser = await puppeteer.launch({headless: usingHeadless});
                 pupPage = await pupBrowser.newPage();
                 console.log("Created page");
 
