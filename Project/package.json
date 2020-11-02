@@ -19,11 +19,12 @@
   "license": "ISC",
   "dependencies": {
     "@apify/http-request": "^2.1.0",
-    "electron": "^10.1.5",
     "open": "^7.3.0",
+    "puppeteer": "^5.4.1",
     "request": "^2.88.2"
   },
   "devDependencies": {
+    "electron": "^10.1.5",
     "electron-packager": "^15.1.0"
   }
 }

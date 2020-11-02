@@ -2,11 +2,14 @@ const requester = require('@apify/http-request');
 const open = require('open');
 const process = require('process');
 const { spawn } = require('child_process');
-const { argv } = process;
 const electron = require('electron');
 const {app, BrowserWindow, ipcMain} = electron;
-const path = require('path');
+const puppeteer = require('puppeteer');
+const { ipcRenderer } = require('electron');
+const common = require('./common');
+const chromium = require('chromium');
 
+// Data
 var websiteURL = "";
 var tellSign = ""
 var pingTimeMilliseconds = 10000.0;
@@ -14,12 +17,19 @@ var pingTimeMilliseconds = 10000.0;
 // Delta timer
 var curPingTimer = 0.0;
 var lastUpdate = Date.now();
-
 var currentlyPinging;
 
+// For using GUI and multiple instances
 var usingGUI = false;
-var mainWindow;
+var mainWindow = null;
+var advWindow = null;
 var processes = [];
+
+// For headless/basic
+var usingChromium = false;
+var usingHeadless = false;
+var pupBrowser = null;
+var pupPage = null;
 
 
 async function makeRequest()
@@ -42,36 +52,70 @@ async function makeRequest()
             currentlyPinging = true;
             console.log("Requesting site...");
 
-            try
+            if(usingChromium)
             {
-                const { body, statusCode} = await requester({url: websiteURL}).catch(err => {console.log(err);})
-                processPage(statusCode, body);
+                await advancedProcess();
             }
-            catch
+            else
             {
-                console.log("Request error.");
+                await basicProcess();
             }
         }
     }
 }
 
-function processPage(responce, body)
+async function basicProcess()
+{
+    try
+    {
+        const { body, statusCode} = await requester({url: websiteURL}).catch(err => {console.log(err);})
+        processPage(statusCode, body);
+    }
+    catch
+    {
+        console.log("Request error.");
+    }
+}
+
+async function advancedProcess()
+{
+    try
+    {
+        await pupPage.goto(websiteURL);
+        const bodyHandle = await pupPage.$('body');
+        const html = await pupPage.evaluate(body => body.innerHTML, bodyHandle);
+        await bodyHandle.dispose();
+        processPage(200, html);
+    }
+    catch
+    {
+        console.log("Advanced process error.");
+    }
+}
+
+function processPage(responceCode, body)
 {
     console.log("Response received.");
 
-    if(responce != 200)
+    if(responceCode != 200)
     {
-        console.log(`Bad response: ${responce}`);
+        console.log(`Bad response: ${responceCode}`);
     }
     else
     {
         if(!body.includes(tellSign))
         {
-            console.log(body);
             console.log("Availble!");
-            // Open chrome with url
-            open(websiteURL);
-            return;
+
+            if(usingChromium && !usingHeadless)
+            {
+            }
+            else
+            {
+                // Open chrome with url
+                open(websiteURL);
+                process.exit(0);
+            }
         }
         else
         {
@@ -83,16 +127,54 @@ function processPage(responce, body)
     makeRequest();
 }
 
-function main()
+async function main()
 {
     // Grab arguments
     var args = process.argv.slice(2);
 
     if(args != null && args.length > 0)
     {
-        websiteURL = args[0];
-        tellSign = args[1];
-        pingTimeMilliseconds = Number(args[2]) * 1000;
+        try
+        {
+            websiteURL = args[0];
+            tellSign = args[1];
+            pingTimeMilliseconds = Number(args[2]) * 1000;
+            console.log("Got basicss");
+            
+            if(args.length >= 3 && args[3] == "-a")
+            {
+                usingChromium = true;
+                console.log("Flag chrome");
+
+                if(args.length >= 4 && args[4] == "-h")
+                {
+                    console.log("Flag headless");
+                    usingHeadless = true;
+                }
+
+                console.log("Creating browser");
+                console.log(`Chromium path: ${chromium.path}`);
+
+                pupBrowser = await puppeteer.launch({headless: usingHeadless, executablePath: chromium.path});
+                pupPage = await pupBrowser.newPage();
+                console.log("Created page");
+
+
+                process.on('exit', (code) =>
+                {
+                    if(pupBrowser != null)
+                    {
+                        pupBrowser.close();
+                    }
+                })
+            }
+        }
+        catch(err)
+        {
+            console.log(err);
+            console.log("Failed to parse arguments.");
+            process.exit(1);
+        }
     }
     else
     {
@@ -109,16 +191,16 @@ function main()
                 }
             })
 
-            mainWindow.setMenu(null);
-
-            // Load the index.html of the app.
-            mainWindow.loadFile('index.html');
-
-            app.on('window-all-closed', () => 
+            //mainWindow.setMenu(null);       
+            
+            mainWindow.on('close', (event) =>
             {
                 console.log("Quitting...");
                 shutdown();
             })
+
+            // Load the index.html of the app.
+            mainWindow.loadFile('index.html');
 
             ipcMain.on('session:new-process', (e, sessionPID) => 
             {
@@ -131,9 +213,36 @@ function main()
                 console.log("Clearing processes...");
                 clearProcesses();
             })
+
+            ipcMain.on('new-advanced', () => 
+            {
+                if(advWindow != null && !advWindow.isDestroyed())
+                {
+                    console.log("Advanced window already open.");
+                    return;
+                }
+                advWindow = new BrowserWindow(
+                {
+                    width: 680,
+                    height: 400,
+                    webPreferences: {
+                        nodeIntegration: true,
+                        enableRemoteModule: true
+                    }
+                })
+
+                advWindow.setMenu(null);
+
+                advWindow.loadFile('newAdvanced.html');
+            })
+
+            ipcMain.on('advanced-confirm', () =>
+            {
+
+            })
         });
 
-        return 0;
+        return;
     }
 
     // Start core loop
@@ -145,7 +254,7 @@ function clearProcesses()
     console.log(`Killing ${processes.length} processes`);
     processes.forEach(element => 
     {
-        run("taskkill", ["/PID", element, "/F"], (code, command)=>{console.log(command)});
+        common.CMDRun("taskkill", ["/PID", element, "/F"], (code, command)=>{console.log(command)});
     });
 
     processes = [];
@@ -156,30 +265,6 @@ function shutdown()
     clearProcesses();
     app.quit();
     process.exit(0);
-}
-
-function run(command, option, done)
-{
-    console.log(" \nexecuting command " + command + " args: " + option +  "\n");
-
-    const launch = spawn(command, option);
-    let commandOutput = "";
-
-    launch.stdout.on('data', (data) => {
-        console.log(`${data}`);
-        commandOutput += data;
-        });
-
-    launch.stderr.on('error', (data) => {
-        console.error(`${data}`);
-    });
-    
-    launch.on('close', (code) => {
-        console.log(`Exited with code ${code}`);
-        done(code, commandOutput);
-    });
-
-    return launch;
 }
 
 

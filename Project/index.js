@@ -1,24 +1,35 @@
-const command = "scraper-win.exe"
-const { spawn } = require('child_process');
 const { ipcRenderer } = require('electron');
+const common = require('./common');
 
+const command = "scraper-win.exe"
 const newWindowBtn = document.getElementById("launchSessionButton");
 const clearAllBtn = document.getElementById("clearAllButton");
 const sessionList = document.getElementById("sessionList");
+const advancedBtn = document.getElementById('advancedInstance');
+const fakeBrowserToggle = document.getElementById('fakeBrowser');
+
+const urlElement = document.getElementById("URL");
+const elementElement = document.getElementById("element");
+const timeoutElement = document.getElementById("timeout");
 
 newWindowBtn.addEventListener('click', (event) =>
 {
-    var urlElement = document.getElementById("URL");
-    var elementElement = document.getElementById("element");
-    var timeoutElement = document.getElementById("timeout");
-
     var urlVal = urlElement.value;
     var elementVal = elementElement.value;
     var timeoutVal = Number(timeoutElement.value);
+    var headlessVal = fakeBrowserToggle.checked;
 
-    var session = run(command, [urlVal, elementVal, timeoutVal * 1000], done);
+    var arguments = [urlVal, elementVal, timeoutVal * 1000];
 
-    urlElement.value = ""
+    if(headlessVal)
+    {
+        arguments.push("-a");
+        arguments.push("-h");
+    }
+
+    var session = common.CMDRun(command, arguments, (code, command)=>{console.log(command)});
+
+    urlElement.value = "";
     elementElement.value = "";
     timeoutElement.value = 5;
     
@@ -30,34 +41,10 @@ clearAllBtn.addEventListener('click', (event) =>
     ipcRenderer.send('clear-processes');
 })
 
-function done(code, commandOutput)
+advancedBtn.addEventListener('click', (event) =>
 {
-    console.log(`${code}\n${commandOutput}`);
-}
-
-function run(command, option, done)
-{
-    console.log("\nExecuting command " + command + " args: " + option +  "\n");
-
-    const launch = spawn(command, option);
-    let commandOutput = "";
-
-    launch.stdout.on('data', (data) => {
-        console.log(`${data}`);
-        commandOutput += data;
-        });
-
-    launch.stderr.on('error', (data) => {
-        console.error(`${data}`);
-    });
-    
-    launch.on('close', (code) => {
-        console.log(`Exited with code ${code}`);
-        done(code, commandOutput);
-    });
-
-    return launch;
-}
+    ipcRenderer.send('new-advanced');
+})
 
 function addListItem(url, element, timeout, session)
 {
@@ -77,6 +64,7 @@ function addListItem(url, element, timeout, session)
 
     session.on('close', (code) => 
     {
+        console.log('Removing list element.');
         sessionList.removeChild(li);
     });
 

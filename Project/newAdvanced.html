@@ -5,13 +5,14 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-    <title>Web Scraper</title>
+    <title>Create advanced</title>
     <link rel = "stylesheet" href="styles.css">
   </head>
   <body>
     <div>
       <label>URL: 
         <input type="text" id="URL" placeholder="https://www.google.com">
+        <button id="openBrowser">Open Browser</button>
       </label>
     </div>
     <div>
@@ -24,22 +25,7 @@
         <input type="number" id="timeout" value="5">
       </label>
     </div>
-    <div>
-      <label>Fake Browser (Slower)
-        <input type="checkbox" id="fakeBrowser" value="False">
-      </label>
-    </div>
     <button id = "launchSessionButton">Launch Instance</button>
-    <button id = "clearAllButton">Kill all</button>
-    <button id = "advancedInstance">Create Advanced</button>
-
-
-    <h1>Active processes</h1>
-    <table id="sessionList">
-      <th>URL</th>
-      <th>Element</th>
-      <th>Timeout (seconds)</th>
-    </table>
 
 
     <script src="./index.js"></script>
