@@ -11,19 +11,77 @@ const urlElement = document.getElementById("URL");
 const elementElement = document.getElementById("element");
 const timeoutElement = document.getElementById("timeout");
 
+const openFileDialogBtn = document.getElementById("loadCookiesBtn");
+const clearCookiesBtn = document.getElementById("clearCacheBtn");
+const headlessToggle = document.getElementById("runHeadless");
+const headlessLabel = document.getElementById("headlessLabel");
+
+openFileDialogBtn.style.display = 'none';
+clearCookiesBtn.style.display = 'none';
+headlessLabel.style.display = 'none';
+
 newWindowBtn.addEventListener('click', (event) =>
+{
+    ipcRenderer.send('request-cookies-path');
+})
+
+fakeBrowserToggle.addEventListener('click', (event) =>
+{
+    openFileDialogBtn.style.display = fakeBrowserToggle.checked ? 'block' : 'none';
+    headlessLabel.style.display = fakeBrowserToggle.checked ? 'block' : 'none';
+})
+
+clearAllBtn.addEventListener('click', (event) =>
+{
+    ipcRenderer.send('clear-processes');
+})
+
+clearCookiesBtn.addEventListener('click', (event) =>
+{
+    ipcRenderer.send('clear-cookies');
+})
+
+openFileDialogBtn.addEventListener('click', (event) =>
+{
+    console.log("send!");
+    ipcRenderer.send('load-cookies');
+})
+
+ipcRenderer.on('cache-data', (event, fileName) =>
+{
+    if(fileName == null)
+    {
+        clearCookiesBtn.style.display = 'none';
+        return;
+    }
+
+    clearCookiesBtn.style.display = 'block';
+    clearCookiesBtn.innerHTML = `Clear ${fileName}`;
+})
+
+ipcRenderer.on('cookie-path', (event, cookiePath) =>
 {
     var urlVal = urlElement.value;
     var elementVal = elementElement.value;
     var timeoutVal = Number(timeoutElement.value);
-    var headlessVal = fakeBrowserToggle.checked;
+    var useChromium = fakeBrowserToggle.checked;
+    var isHeadless = headlessToggle.checked;
 
-    var arguments = [urlVal, elementVal, timeoutVal * 1000];
+    var arguments = [urlVal, elementVal, timeoutVal];
 
-    if(headlessVal)
+    if(useChromium)
     {
         arguments.push("-a");
-        arguments.push("-h");
+        if(isHeadless)
+        {
+            arguments.push("-h");
+        }
+    }
+
+    if(cookiePath != null)
+    {
+        arguments.push('-c');
+        arguments.push(cookiePath);
     }
 
     var session = common.CMDRun(command, arguments, (code, command)=>{console.log(command)});
@@ -33,11 +91,6 @@ newWindowBtn.addEventListener('click', (event) =>
     timeoutElement.value = 5;
     
     addListItem(urlVal, elementVal, timeoutVal, session);
-})
-
-clearAllBtn.addEventListener('click', (event) =>
-{
-    ipcRenderer.send('clear-processes');
 })
 
 function addListItem(url, element, timeout, session)

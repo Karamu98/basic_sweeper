@@ -25,10 +25,18 @@
       </label>
     </div>
     <div>
-      <label>Fake Browser (Slower)
+      <label>Use Chromium
         <input type="checkbox" id="fakeBrowser" value="False">
       </label>
+      <label id="headlessLabel">Headless
+        <input type="checkbox" id="runHeadless" value="False">
+      </label>
     </div>
+    <div>
+      <button id = "loadCookiesBtn">Preset cookies</button>
+      <button id = "clearCacheBtn">Clear cookies</button>
+    </div>
+    <br>
     <button id = "launchSessionButton">Launch Instance</button>
     <button id = "clearAllButton">Kill all</button>
 

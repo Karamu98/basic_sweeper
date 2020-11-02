@@ -1,1 +1,1 @@
-node main.js "https://www.target.com/p/playstation-5-digital-edition-console/-/A-81114596" "Sold out" 5 -a -h
+node main.js "https://www.bestbuy.com/site/sony-playstation-5-digital-edition-console/6430161.p?skuId=6430161&intl=nosplash" "Coming Soon" 5 -a -c "D:\\Dev\\basic_sweeper\\bestbuy-cookies.kara"

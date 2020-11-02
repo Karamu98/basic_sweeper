@@ -1,19 +1,35 @@
 const requester = require('@apify/http-request');
 const open = require('open');
 const process = require('process');
-const { spawn } = require('child_process');
 const electron = require('electron');
 const {app, BrowserWindow, ipcMain} = electron;
 const puppeteer = require('puppeteer');
 const common = require('./common');
 const path = require('path');
-const { Menu } = require('electron');
+const { Menu, dialog, ipcRenderer } = require('electron');
+const fs = require('fs');
+const url = require('url');
+
+const command = "scraper-win.exe"
 
 const isPkg = true;
 const chromiumExePath =
 (
     isPkg ? path.join(path.dirname(process.execPath), 'chromium\\win64-809590\\chrome-win\\chrome.exe') : puppeteer.executablePath()
 )
+
+const dialogOptions =
+{
+    title: 'Save cookies',
+    defaultPath: process.execPath,
+    filters: 
+    [
+        {
+            name: ".kara",
+            extensions: ["kara"]
+        }
+    ]
+}
 
 // Data
 var websiteURL = "";
@@ -36,10 +52,25 @@ var usingHeadless = false;
 var pupBrowser = null;
 var pupPage = null;
 
+// For using cookie file
+var cookieFilePath = null;
+var pupCookieCutterBrowser = null;
+var pupCookieCutterPage = null;
+var cookieCutterWindow = null;
+var cachedCookieFilePath = null;
+
+
 const menuLayout = [
     {
         label: 'Menu',
         submenu:[
+            {
+                label: 'Open cookie cutter',
+                click()
+                {
+                    openCookieCutter();
+                }
+            },
             {
                 label: 'Toggle Debug',
                 click()
@@ -120,6 +151,72 @@ async function advancedProcess()
     }
 }
 
+async function openCookieCutter()
+{
+    if(pupCookieCutterBrowser != null)
+    {
+        return;
+    }
+
+    let launchOptions = 
+    {
+        headless: false,
+        executablePath: chromiumExePath
+    }
+
+    cookieCutterWindow = new BrowserWindow(
+        {
+            width: 680,
+            height: 400,
+            webPreferences: {
+                nodeIntegration: true,
+                enableRemoteModule: true
+            }
+        })
+    cookieCutterWindow.setMenu(null);
+    cookieCutterWindow.loadURL(url.format(
+        {
+            pathname: path.join(__dirname, "cookiecutter.html"),
+            protocol: 'file:',
+            slashes: true
+        }
+    ));
+
+    cookieCutterWindow.on("closed", (event) =>
+    {
+        pupCookieCutterBrowser.close();
+        cookieCutterWindow = null;
+    })
+
+    ipcMain.on('save-cookies', (event) =>
+    {
+        var saveFile = dialog.showSaveDialogSync(mainWindow, dialogOptions);
+
+        if(saveFile == undefined)
+        {
+            event.reply('enable');
+            return;
+        }
+        
+        saveCookies(saveFile);
+
+        cookieCutterWindow.close();
+    })
+
+    pupCookieCutterBrowser = await puppeteer.launch(launchOptions);
+    var pages = await pupCookieCutterBrowser.pages();
+    pupCookieCutterPage = pages[0];
+
+    pupCookieCutterBrowser.on("disconnected", (event) =>
+    {
+        if(cookieCutterWindow != null)
+        {
+            cookieCutterWindow.close();
+        }
+        pupCookieCutterBrowser = null;
+    })
+}
+
 function processPage(responceCode, body)
 {
     console.log("Response received.");
@@ -148,6 +245,26 @@ function processPage(responceCode, body)
     makeRequest();
 }
 
+async function saveCookies(file)
+{
+    const cookies = await pupCookieCutterPage.cookies();
+
+    fs.writeFileSync(file, JSON.stringify(cookies, null, 2));
+}
+
+function loadCookies(filePath)
+{
+    const cookiesData = fs.readFileSync(filePath);
+    if(cookiesData == null)
+    {
+        return null;
+    }
+    else
+    {
+        return JSON.parse(cookiesData);
+    }
+}
+
 async function main()
 {
     // Grab arguments
@@ -161,13 +278,30 @@ async function main()
             tellSign = args[1];
             pingTimeMilliseconds = Number(args[2]) * 1000;
             
-            if(args.length >= 3 && args[3] == "-a")
+            if(args.includes("-a"))
             {
                 usingChromium = true;
 
-                if(args.length >= 4 && args[4] == "-h")
+                if(args.includes("-h"))
                 {
                     usingHeadless = true;
+                }
+
+                var usingCookies = false;
+                if(args.includes("-c"))
+                {
+                    var nextItem = args.indexOf("-c") + 1;
+                    usingCookies = true;
+
+                    try
+                    {
+                        cookieFilePath = args[nextItem];
+                    }
+                    catch(err)
+                    {
+                        console.log(err);
+                        return;
+                    }
                 }
 
                 console.log("Creating browser");
@@ -179,9 +313,15 @@ async function main()
                 }
 
                 pupBrowser = await puppeteer.launch(launchOptions);
-                pupPage = await pupBrowser.newPage();
-                console.log("Created page");
 
+                var pages = await pupBrowser.pages();
+                pupPage = pages[0];
+
+                if(usingCookies)
+                {
+                    console.log("Setting cookies.");
+                    loadCookies(cookieFilePath);
+                }
 
                 process.on('exit', (code) =>
                 {
@@ -229,16 +369,51 @@ async function main()
             // Load the index.html of the app.
             mainWindow.loadFile('index.html');
 
-            ipcMain.on('session:new-process', (e, sessionPID) => 
-            {
-                console.log("Adding new process...");
-                processes.push(sessionPID);
-            })
-
             ipcMain.on('clear-processes', () =>
             {
                 console.log("Clearing processes...");
                 clearProcesses();
+            })
+
+            ipcMain.on('load-cookies', (event) =>
+            {
+                console.log("Received call");
+                var loadFile = dialog.showOpenDialogSync(mainWindow, dialogOptions);
+        
+                if(loadFile == undefined)
+                {
+                    event.reply('cache-data', null);
+                    return;
+                }
+
+                var validFile = loadCookies(loadFile[0]);
+                if(validFile != null)
+                {
+                    cachedCookieFilePath = loadFile[0];
+                    event.reply('cache-data', loadFile[0]);
+                }
+                else
+                {
+                    event.reply('cache-data', null);
+                    return;
+                }
+            })
+
+            ipcMain.on('clear-cookies', (event) =>
+            {
+                cachedCookieFilePath = null;
+                event.reply('cache-data', null);
+            })
+
+            ipcMain.on('session:new-process', (event, pid) =>
+            {
+                console.log("Adding new process...");
+                processes.push(pid);
+            })
+
+            ipcMain.on('request-cookies-path', (event) =>
+            {
+                event.reply('cookie-path', cachedCookieFilePath);                
             })
         });
 
