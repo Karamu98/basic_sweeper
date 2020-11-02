@@ -7,8 +7,9 @@ const {app, BrowserWindow, ipcMain} = electron;
 const puppeteer = require('puppeteer');
 const common = require('./common');
 const path = require('path');
+const { Menu } = require('electron');
 
-const isPkg = false;
+const isPkg = true;
 const chromiumExePath =
 (
     isPkg ? path.join(path.dirname(process.execPath), 'chromium\\win64-809590\\chrome-win\\chrome.exe') : puppeteer.executablePath()
@@ -34,6 +35,28 @@ var usingChromium = false;
 var usingHeadless = false;
 var pupBrowser = null;
 var pupPage = null;
+
+const menuLayout = [
+    {
+        label: 'Menu',
+        submenu:[
+            {
+                label: 'Toggle Debug',
+                click()
+                {
+                    mainWindow.toggleDevTools();
+                }
+            },
+            {
+                label: 'Quit',
+                click()
+                {
+                    shutdown();
+                }
+            }
+        ]
+    }
+]
 
 
 async function makeRequest()
@@ -113,7 +136,7 @@ function processPage(responceCode, body)
 
             // Open chrome with url
             open(websiteURL);
-            process.exit(0);
+            return;
         }
         else
         {
@@ -191,7 +214,11 @@ async function main()
                 }
             })
 
-            //mainWindow.setMenu(null);       
+
+
+            const mainMenu = Menu.buildFromTemplate(menuLayout);
+
+            mainWindow.setMenu(mainMenu);       
             
             mainWindow.on('close', (event) =>
             {
