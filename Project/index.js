@@ -5,7 +5,6 @@ const command = "scraper-win.exe"
 const newWindowBtn = document.getElementById("launchSessionButton");
 const clearAllBtn = document.getElementById("clearAllButton");
 const sessionList = document.getElementById("sessionList");
-const advancedBtn = document.getElementById('advancedInstance');
 const fakeBrowserToggle = document.getElementById('fakeBrowser');
 
 const urlElement = document.getElementById("URL");
@@ -39,11 +38,6 @@ newWindowBtn.addEventListener('click', (event) =>
 clearAllBtn.addEventListener('click', (event) =>
 {
     ipcRenderer.send('clear-processes');
-})
-
-advancedBtn.addEventListener('click', (event) =>
-{
-    ipcRenderer.send('new-advanced');
 })
 
 function addListItem(url, element, timeout, session)

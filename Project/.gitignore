@@ -114,3 +114,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Misc
+chromium/*
+pkgBuild/*
+release-builds/*
+scraper-linux
+scraper-macos
+scraper-win.exe

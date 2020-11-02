@@ -5,9 +5,14 @@ const { spawn } = require('child_process');
 const electron = require('electron');
 const {app, BrowserWindow, ipcMain} = electron;
 const puppeteer = require('puppeteer');
-const { ipcRenderer } = require('electron');
 const common = require('./common');
-const chromium = require('chromium');
+const path = require('path');
+
+const isPkg = false;
+const chromiumExePath =
+(
+    isPkg ? path.join(path.dirname(process.execPath), 'chromium\\win64-809590\\chrome-win\\chrome.exe') : puppeteer.executablePath()
+)
 
 // Data
 var websiteURL = "";
@@ -22,7 +27,6 @@ var currentlyPinging;
 // For using GUI and multiple instances
 var usingGUI = false;
 var mainWindow = null;
-var advWindow = null;
 var processes = [];
 
 // For headless/basic
@@ -107,15 +111,9 @@ function processPage(responceCode, body)
         {
             console.log("Availble!");
 
-            if(usingChromium && !usingHeadless)
-            {
-            }
-            else
-            {
-                // Open chrome with url
-                open(websiteURL);
-                process.exit(0);
-            }
+            // Open chrome with url
+            open(websiteURL);
+            process.exit(0);
         }
         else
         {
@@ -150,7 +148,14 @@ async function main()
                 }
 
                 console.log("Creating browser");
-                pupBrowser = await puppeteer.launch({headless: usingHeadless});
+
+                let launchOptions = 
+                {
+                    headless: usingHeadless,
+                    executablePath: chromiumExePath
+                }
+
+                pupBrowser = await puppeteer.launch(launchOptions);
                 pupPage = await pupBrowser.newPage();
                 console.log("Created page");
 
@@ -207,33 +212,6 @@ async function main()
             {
                 console.log("Clearing processes...");
                 clearProcesses();
-            })
-
-            ipcMain.on('new-advanced', () => 
-            {
-                if(advWindow != null && !advWindow.isDestroyed())
-                {
-                    console.log("Advanced window already open.");
-                    return;
-                }
-                advWindow = new BrowserWindow(
-                {
-                    width: 680,
-                    height: 400,
-                    webPreferences: {
-                        nodeIntegration: true,
-                        enableRemoteModule: true
-                    }
-                })
-
-                advWindow.setMenu(null);
-
-                advWindow.loadFile('newAdvanced.html');
-            })
-
-            ipcMain.on('advanced-confirm', () =>
-            {
-
             })
         });
 
