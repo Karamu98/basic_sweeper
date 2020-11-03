@@ -320,7 +320,8 @@ async function main()
                 if(usingCookies)
                 {
                     console.log("Setting cookies.");
-                    loadCookies(cookieFilePath);
+                    var cookies = loadCookies(cookieFilePath);
+                    await pupPage.setCookie(...cookies);
                 }
 
                 process.on('exit', (code) =>
